@@ -146,7 +146,7 @@ NOTES:
  *   Rating: 1
  */
 int signMask(void) {
-  return 1;
+  return 1<<31;
 }
 
 // P2
@@ -158,7 +158,11 @@ int signMask(void) {
  *   Rating: 2
  */
 int bitXor(int x, int y) {
-	return 2;
+  int a = ~(x&y);
+  int b = ~(a&x);
+  int c = ~(a&y);
+  int d = ~(b&c);
+	return d;
 }
 
 // P3
@@ -170,7 +174,7 @@ int bitXor(int x, int y) {
  *   Rating: 3
  */
 int negativePart(int x){
-  return 3;
+  return x>>31 & (~x+1);
 }
 
 
@@ -185,7 +189,9 @@ int negativePart(int x){
  *   Rating: 4
  */
 int copyByteWithin(int x, int src, int dst) {
-  return 4;
+  int src8= (src << 3);
+  int dst8= (dst << 3);
+  return (((x >> src8 )& 0xFF) << dst8) | (x & ~(0xFF << dst8));
 }
 
 // P5
@@ -198,7 +204,7 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  return 5;
+  return x>>n & ~(0x1 << 31 >> n <<1);
 }
 
 // P6
@@ -210,7 +216,10 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int swapNibblePairs(int x) {
-  return 6;
+  int mask1=(0xF0)+(0xF0<<8)+(0xF0<<16)+(0xF0<<24);
+  int mask2=~mask1;
+  int ans = (((x&mask1)>>4)&(~(0xF0<<24))) | ((x&mask2)<<4);
+  return ans;
 }
 
 // P7
@@ -223,7 +232,10 @@ int swapNibblePairs(int x) {
  *   Rating: 4
  */
 int secondLowestZeroBit(int x) {
-  return 7;
+  int l1 = ~x &(x+1);
+  int x1 = x + l1;
+  int l2 = ~x1 &(x1+1);
+  return l2;
 }
 
 // P8
@@ -236,7 +248,16 @@ int secondLowestZeroBit(int x) {
  *   Rating: 5
  */
 int oddParity(int x) {
-  return 8;
+  int l1=x, h1=x>>16;
+  int x1=l1^h1;
+  int l2=x1, h2=x1>>8;
+  int x2=l2^h2;
+  int l3=x2, h3=x2>>4;
+  int x3=l3^h3;
+  int l4=x3, h4=x3>>2;
+  int x4=l4^h4;
+  int l5=x4, h5=x4>>1;
+  return (~(h5^l5)) & 0x1;
 }
 
 // P9
@@ -249,7 +270,7 @@ int oddParity(int x) {
  *   Rating: 5
  */
 int rotateRightBits(int x, int n) {
-  return 9;
+  return ((x>>n)&(~(0x1<<31>>n<<1))) | (x<<(33+~n));
 }
 
 // P10
