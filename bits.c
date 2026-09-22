@@ -285,7 +285,9 @@ int rotateRightBits(int x, int n) {
  *   Rating: 5
  */
 int roundEvenPow2(int x, int n) {
-  return 10;
+  int q=x>>n;
+  int half = 1<<(n+~0);
+  return (x+half+~0+(q&1))>>n<<n ;
 }
 
 // P11
@@ -301,7 +303,7 @@ int roundEvenPow2(int x, int n) {
  *   Rating: 5
  */
 int midpointTowardFirst(int x, int y) {
-  return 11;
+  return (x&y)+((x^y)>>1) + ((x^y)&1&((((x^y)>>31)&~(x>>31))|(((~(x^y))>>31)&~((x+~y+1)>>31))));
 }
 
 
@@ -315,7 +317,12 @@ int midpointTowardFirst(int x, int y) {
  *   Rating: 7
  */
 int isBetweenEitherOrder(int x, int a, int b) {
-  return 12;
+  int signx=x>>31, signxa=(x^a)>>31, signxb=(x^b)>>31;
+  int xa=(signxa&signx)|((~signxa)&((x+~a+1)>>31));
+  int xb=(signxb&signx)|((~signxb)&((x+~b+1)>>31));
+  int ax=(signxa&(a>>31))|((~signxa)&((a+~x+1)>>31));
+  int bx=(signxb&(b>>31))|((~signxb)&((b+~x+1)>>31));
+  return ~((xa&xb)|(ax&bx))&1;
 }
 
 // P13
@@ -328,7 +335,11 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-  return 13;
+  int x4=x<<2;
+  int a=((x4)>>2)^x;
+  int b=(a|(~a+1))>>31;//1: x4 ovf
+  int p=(x^(x+x4))>>31;//1: pls ovf
+  return ((x4+x)&(~b)&(~p))+((b|p)&((x>>31)^~(1<<31)));
 }
 
 // P14
@@ -341,7 +352,13 @@ int mul5Sat(int x) {
  *   Rating: 7
  */
 int classifyAdd3(int x, int y, int z) {
-  return 14;
+  int sx=x>>31, sy=y>>31, sz=z>>31;
+  int ss=sx+sy+sz;
+  int xy=x+y, xyz=xy+z;
+  int c1=(((x&y)|((x^y)&~xy))>>31)&1;
+  int c2=(((xy&z)|((xy^z)&~xyz))>>31)&1;
+  int h=ss+c1+c2+((xyz>>31)&1);
+  return (h>>31)| !!h;
 }
 
 // P15
@@ -358,7 +375,25 @@ int classifyAdd3(int x, int y, int z) {
  *   Rating: 7
  */
 unsigned floatScaleThreeHalves(unsigned uf) {
-  return 15;
+  unsigned s = uf & 0x80000000, e = (uf>>23)&0xFF , m = uf & 0x7FFFFF;
+  if (e==0xFF) return uf;
+  if (e==0 && m==0) return uf;
+  if (e) m = m | 0x800000;
+  unsigned last = m&1;
+  unsigned sm = (m>>1) + m;
+  if ((sm&1) && last) sm+=1;
+  if (!e && (sm>>23)){
+    return s|sm;
+  }
+  unsigned smovf=sm>>24;
+  if (smovf) {
+    if ((sm&1) && sm&2) sm+=2;
+    e += 1;
+    sm = sm >> 1;
+    if (e==0xFF) return s|0x7F800000;
+  }
+
+  return s|(e<<23)|(sm&0x7FFFFF);
 }
 
 // P16
@@ -374,7 +409,17 @@ unsigned floatScaleThreeHalves(unsigned uf) {
  *   Rating: 10
  */
 unsigned floatRoundEven(unsigned uf) {
-  return 16;
+  unsigned s=uf&0x80000000, e = (uf >> 23)&0xFF, m = uf & 0x7FFFFF;
+  if (e == 0xFF || e>=150) return uf;
+  if (e==0) return s;
+  if (e<127) return (e==126 && m)? s|(0x7F<<23):s;
+  m = m | 0x800000;
+  unsigned sh = 150 - e;
+  if ((m>>(sh-1))&1&(m>>sh)) m=(m>>sh)+1;
+  else if((m>>(sh-1)&1)&&(sh!=1)&&(m<<(33-sh))) m=(m>>sh)+1;
+  else m=m>>sh;
+  if(m<<sh>>24) return s|((e+1)<<23)|((m<<(sh-1))&0x7FFFFF);
+  return s|(e<<23)|((m<<sh)&0x7FFFFF);
 }
 
 // P17
@@ -388,7 +433,30 @@ unsigned floatRoundEven(unsigned uf) {
  *   Rating: 10
  */
 unsigned float_i2f(int x) {
-  return 17;
+  if (x){
+    unsigned s = x & 0x80000000, m= x>0? x: (~x+1);
+    unsigned e=127+23;
+    if (m>>24){
+      unsigned last = 0x0;
+      while (m>>24){
+        last = (m&1)+(last<<1);
+        m=m>>1;
+        e+=1;
+      }
+      if ((last&1)&&((last>>1)||(m&1))) m+=1;
+      if (m>>24){
+        m = m>>1;
+        e+=1;
+      }
+    } else {
+      while (!(m & 0x800000)){
+        e-=1;
+        m=m<<1;
+      }
+    }
+    return s|(e<<23)|(m&0x7FFFFF);
+  }
+  return 0x0;
 }
 
 
@@ -402,7 +470,17 @@ unsigned float_i2f(int x) {
  *   Rating: 10
  */
 int bitCount(int x) {
-  return 18;
+  int n1=(0x55<<24)+(0x55<<16)+(0x55<<8)+0x55;
+  int n2=(0x33<<24)+(0x33<<16)+(0x33<<8)+0x33;
+  int n3=(0x0f<<24)+(0x0F<<16)+(0x0F<<8)+0x0F;
+  int n4=(0xFF<<16)+(0xFF);
+  int n5=(0xFF<<8)+0xFF;
+  int x1=(x&n1)+((x>>1)&n1);
+  int x2=(x1&n2)+((x1>>2)&n2);
+  int x3=(x2&n3)+((x2>>4)&n3);
+  int x4=(x3&n4)+((x3>>8)&n4);
+  int x5=(x4&n5)+((x4>>16)&n5);
+  return x5;
 }
 
 // P19
@@ -416,5 +494,15 @@ int bitCount(int x) {
  */
 int bitReverse(int x)
 {
-  return 19;
+  int n1=(0x55<<24)+(0x55<<16)+(0x55<<8)+0x55;
+  int n2=(0x33<<24)+(0x33<<16)+(0x33<<8)+0x33;
+  int n3=(0x0f<<24)+(0x0F<<16)+(0x0F<<8)+0x0F;
+  int n4=(0xFF<<16)+(0xFF);
+  int n5=(0xFF<<8)+0xFF;
+  int x1=((x&n1)<<1)+((x>>1)&n1);
+  int x2=((x1&n2)<<2)+((x1>>2)&n2);
+  int x3=((x2&n3)<<4)+((x2>>4)&n3);
+  int x4=((x3&n4)<<8)+((x3>>8)&n4);
+  int x5=((x4&n5)<<16)+((x4>>16)&n5);
+  return x5;
 }
