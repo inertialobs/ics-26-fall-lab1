@@ -470,11 +470,11 @@ unsigned float_i2f(int x) {
  *   Rating: 10
  */
 int bitCount(int x) {
-  int n1=(0x55<<24)+(0x55<<16)+(0x55<<8)+0x55;
-  int n2=(0x33<<24)+(0x33<<16)+(0x33<<8)+0x33;
-  int n3=(0x0f<<24)+(0x0F<<16)+(0x0F<<8)+0x0F;
-  int n4=(0xFF<<16)+(0xFF);
-  int n5=(0xFF<<8)+0xFF;
+  int n5=0xFF|(0xFF<<8);
+  int n4=0xFF|(0xFF<<16);
+  int n3=n4^(n4<<4);
+  int n2=n3^(n3<<2);
+  int n1=n2^(n2<<1);
   int x1=(x&n1)+((x>>1)&n1);
   int x2=(x1&n2)+((x1>>2)&n2);
   int x3=(x2&n3)+((x2>>4)&n3);
@@ -494,15 +494,15 @@ int bitCount(int x) {
  */
 int bitReverse(int x)
 {
-  int n1=(0x55<<24)+(0x55<<16)+(0x55<<8)+0x55;
-  int n2=(0x33<<24)+(0x33<<16)+(0x33<<8)+0x33;
-  int n3=(0x0f<<24)+(0x0F<<16)+(0x0F<<8)+0x0F;
-  int n4=(0xFF<<16)+(0xFF);
-  int n5=(0xFF<<8)+0xFF;
+  int n5=0xFF|(0xFF<<8);
+  int n4=0xFF|(0xFF<<16);
+  int n3=n4^(n4<<4);
+  int n2=n3^(n3<<2);
+  int n1=n2^(n2<<1);
   int x1=((x&n1)<<1)+((x>>1)&n1);
   int x2=((x1&n2)<<2)+((x1>>2)&n2);
   int x3=((x2&n3)<<4)+((x2>>4)&n3);
   int x4=((x3&n4)<<8)+((x3>>8)&n4);
-  int x5=((x4&n5)<<16)+((x4>>16)&n5);
+  int x5=((x4)<<16)+((x4>>16)&n5);
   return x5;
 }
